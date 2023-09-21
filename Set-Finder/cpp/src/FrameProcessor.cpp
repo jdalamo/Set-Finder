@@ -7,6 +7,9 @@
 
 #include "FrameProcessor.hpp"
 #include "SetGame.hpp"
+// TODO: Delete
+#include <chrono>
+#include <iostream>
 
 const float MIN_CARD_AREA_PERCENTAGE = 0.007;
 const int THRESHOLD_REFRESH_RATE = 6;
@@ -51,6 +54,7 @@ const std::vector<cv::Scalar> SET_HIGHLIGHT_COLORS = {
 void
 FrameProcessor::process(cv::Mat& frame)
 {
+    auto start = std::chrono::high_resolution_clock::now();
    /**
     * If this is the first frame processed we need to set some member
     * variables.
@@ -87,42 +91,52 @@ FrameProcessor::process(cv::Mat& frame)
 
    // Create indexed contours
    int contourIndex = 0;
-   std::vector<std::tuple<int, std::vector<cv::Point>>> indexedContours;
+   std::vector<IndexedContour> indexedContours;
    std::transform(contours.begin(), contours.end(), std::back_inserter(indexedContours),
       [&](std::vector<cv::Point>& contour) {
          contourIndex++;
-         return std::tuple<int, std::vector<cv::Point>> { contourIndex - 1, contour };
+         return IndexedContour { contourIndex - 1, contour };
       }
    );
 
    // Filter cards
-   std::vector<std::tuple<int, std::vector<cv::Point>>> indexedCardContours;
-   std::unordered_set<int> cardIndices;
+   std::vector<IndexedContour> indexedCardContours;
+   std::vector<int> cardIndices;
    std::copy_if(indexedContours.begin(), indexedContours.end(), std::back_inserter(indexedCardContours),
-      [&](std::tuple<int, std::vector<cv::Point>>& indexedContour) {
+      [&](IndexedContour& indexedContour) {
          return cardFilter(indexedContour,
                            hierarchy,
                            cardIndices);
       }
    );
+   if (indexedCardContours.empty()) return;
 
    // Filter shapes
-   std::vector<std::tuple<int, std::vector<cv::Point>>> indexedShapeContours;
+   std::vector<IndexedContour> indexedShapeContours;
    std::copy_if(indexedContours.begin(), indexedContours.end(), std::back_inserter(indexedShapeContours),
-      [&](std::tuple<int, std::vector<cv::Point>>& indexedContour) {
+      [&](IndexedContour& indexedContour) {
          return shapeFilter(indexedContour,
                             hierarchy,
                             cardIndices);
       }
    );
+   if (indexedShapeContours.empty()) return;
 
    // Classify shapes
    std::unordered_map<int, std::vector<SetGame::Shape>> cardIndexToShapesMap;
-   std::for_each(indexedShapeContours.begin(), indexedShapeContours.end(),
-      [&](const std::tuple<int, std::vector<cv::Point>>& indexedShape) {
-         classifyShape(indexedShape, hierarchy, frame, cardIndexToShapesMap);
+   pthread_mutex_t mapMutex;
+   pthread_mutex_init(&mapMutex, NULL);
+   threadPool.parallelize<std::vector<IndexedContour>>(classifyShapes, indexedShapeContours,
+      [&]() -> ClassifyShapeArg* {
+         ClassifyShapeArg* arg = new ClassifyShapeArg(
+            hierarchy, frame, cardIndexToShapesMap,
+            &mapMutex);
+
+         return arg;
       }
    );
+   pthread_mutex_destroy(&mapMutex);
+   if (cardIndexToShapesMap.empty()) return;
 
    // Verify shapes and construct cards
    std::vector<SetGame::Card> indexedCards;
@@ -142,8 +156,7 @@ FrameProcessor::process(cv::Mat& frame)
       if (!allEqual) continue;
 
       // TODO: check shape positions relative to card and compare to number of shapes
-      SetGame::Shape shape = shapes[0];
-      SetGame::Card card(shape, shapes.size(), cardIndex);
+      SetGame::Card card(shapes[0], shapes.size(), cardIndex);
       indexedCards.push_back(card);
    }
 
@@ -155,9 +168,9 @@ FrameProcessor::process(cv::Mat& frame)
    std::unordered_set<int> highlightedCards;
    int i = 0;
    for (const auto& set : sets) {
-      int index = i % SET_HIGHLIGHT_COLORS.size();
+      int colorIndex = i % SET_HIGHLIGHT_COLORS.size();
+      cv::Scalar color = SET_HIGHLIGHT_COLORS[colorIndex];
       for (const auto& card : set.cards) {
-         cv::Scalar color = SET_HIGHLIGHT_COLORS[index];
          if (highlightedCards.find(card.contourIndex) != highlightedCards.end()) {
             // We've already highlighted this card--expand the contour
             scaleContour(contours[card.contourIndex], HIGHLIGHT_SCALE_FACTOR);
@@ -167,13 +180,17 @@ FrameProcessor::process(cv::Mat& frame)
       }
       i++;
    }
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    _totalDuration += duration.count();
+    std::cout << "Average processing time: " << _totalDuration / _frameNum << std::endl;
 }
 
 bool
 FrameProcessor::cardFilter(
-   const std::tuple<int, std::vector<cv::Point>>& indexedContour,
+   const IndexedContour& indexedContour,
    const std::vector<cv::Vec4i>& hierarchy,
-   std::unordered_set<int>& cardIndices) const
+   std::vector<int>& cardIndices) const
 {
    int index = std::get<0>(indexedContour);
    const std::vector<cv::Point>& contour = std::get<1>(indexedContour);
@@ -197,21 +214,21 @@ FrameProcessor::cardFilter(
    float aspectRatio = ((float)std::max(rect.height, rect.width) / std::min(rect.height, rect.width));
    if (aspectRatio < MIN_ASPECT_RATIO || aspectRatio > MAX_ASPECT_RATIO) return false;
 
-   cardIndices.insert(index);
+   cardIndices.push_back(index);
    return true;
 }
 
 bool
 FrameProcessor::shapeFilter(
-   const std::tuple<int, std::vector<cv::Point>>& indexedContour,
+   const IndexedContour& indexedContour,
    const std::vector<cv::Vec4i>& hierarchy,
-   const std::unordered_set<int>& cardIndices) const
+   const std::vector<int>& cardIndices) const
 {
    int index = std::get<0>(indexedContour);
    const std::vector<cv::Point>& contour = std::get<1>(indexedContour);
 
    int parentIndex = hierarchy[index][PARENT_HIERARCHY_INDEX];
-   if (cardIndices.find(parentIndex) == cardIndices.end()) {
+   if (std::find(cardIndices.begin(), cardIndices.end(), parentIndex) == cardIndices.end()) {
       // Current contour is not contained within a card
       return false;
    }
@@ -229,13 +246,29 @@ FrameProcessor::shapeFilter(
 }
 
 void
+FrameProcessor::classifyShapes(
+   void* voidArg)
+{
+   ClassifyShapeArg* arg = (ClassifyShapeArg*)voidArg;
+   std::for_each(arg->start, arg->end,
+      [&](const IndexedContour& indexedShape) {
+         classifyShape(indexedShape, arg->hierarchy, arg->frame,
+                       arg->cardIndexToShapesMap, arg->mapMutex);
+      }
+   );
+}
+
+void
 FrameProcessor::classifyShape(
-   const std::tuple<int, std::vector<cv::Point>>& indexedShape,
+   const IndexedContour& indexedShape,
    const std::vector<cv::Vec4i>& hierarchy,
    const cv::Mat& frame,
-   std::unordered_map<int, std::vector<SetGame::Shape>>& cardIndexToShapeMap)
+   std::unordered_map<int, std::vector<SetGame::Shape>>& cardIndexToShapeMap,
+   pthread_mutex_t* mapMutex)
 {
-   int index = std::get<0>(indexedShape);
+   const int shapeIndex = std::get<0>(indexedShape);
+   const int parentIndex = hierarchy[shapeIndex][PARENT_HIERARCHY_INDEX];
+
    const std::vector<cv::Point>& contour = std::get<1>(indexedShape);
 
    // Detect contour's symbol
@@ -268,8 +301,7 @@ FrameProcessor::classifyShape(
    );
    std::vector<std::vector<cv::Point>> border = { borderContour };
 
-   cv::Mat borderContourMask = cv::Mat::zeros(frame.size(), frame.type());
-   cv::cvtColor(borderContourMask, borderContourMask, cv::COLOR_BGR2GRAY);
+   cv::Mat borderContourMask = cv::Mat::zeros(frame.size(), CV_8U);
    std::vector<std::vector<cv::Point>> c = { contour };
    cv::drawContours(borderContourMask, c, 0, cv::Scalar(255), -1);
    cv::drawContours(borderContourMask, border, 0, cv::Scalar(0), -1);
@@ -310,19 +342,17 @@ FrameProcessor::classifyShape(
 
    std::vector<std::vector<cv::Point>> outlineExterior = { outlineContourExterior };
    std::vector<std::vector<cv::Point>> outlineInterior = { outlineContourInterior };
-   cv::Mat outlineMask = cv::Mat::zeros(frame.size(), frame.type());
-   cv::cvtColor(outlineMask, outlineMask, cv::COLOR_BGR2GRAY);
+   cv::Mat outlineMask = cv::Mat::zeros(frame.size(), CV_8U);
    cv::drawContours(outlineMask, outlineExterior, 0, cv::Scalar(255), -1);
    cv::drawContours(outlineMask, outlineInterior, 0, cv::Scalar(0), -1);
    cv::Scalar meanBorderColor = cv::mean(frame, outlineMask);
 
    std::vector<std::vector<cv::Point>> fill = { fillContour };
-   cv::Mat fillMask = cv::Mat::zeros(frame.size(), frame.type());
-   cv::cvtColor(fillMask, fillMask, cv::COLOR_BGR2GRAY);
+   cv::Mat fillMask = cv::Mat::zeros(frame.size(), CV_8U);
    cv::drawContours(fillMask, fill, 0, cv::Scalar(255), -1);
    cv::Scalar meanFillColor = cv::mean(frame, fillMask);
 
-   double colorDiff = colorDifference(meanBorderColor, meanFillColor);
+   const double colorDiff = colorDifference(meanBorderColor, meanFillColor);
    SetGame::Shading shading;
    if (colorDiff < OPEN_SHADING_CONTRAST_THRESHOLD) {
       shading = SetGame::Shading::OPEN;
@@ -333,8 +363,9 @@ FrameProcessor::classifyShape(
    }
 
    SetGame::Shape shape(color, symbol, shading);
-   int parentIndex = hierarchy[index][PARENT_HIERARCHY_INDEX];
+   pthread_mutex_lock(mapMutex);
    cardIndexToShapeMap[parentIndex].push_back(shape);
+   pthread_mutex_unlock(mapMutex);
 }
 
 void

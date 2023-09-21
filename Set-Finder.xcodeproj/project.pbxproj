@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		690238BE2AB2B21100D652A2 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 690238BD2AB2B21100D652A2 /* ThreadPool.cpp */; };
 		6933DA662A6100C300763EB9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6933DA652A6100C300763EB9 /* AppDelegate.swift */; };
 		6933DA682A6100C300763EB9 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6933DA672A6100C300763EB9 /* SceneDelegate.swift */; };
 		6933DA6A2A6100C300763EB9 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6933DA692A6100C300763EB9 /* ViewController.swift */; };
@@ -20,6 +21,7 @@
 		6933DAA62A686B9400763EB9 /* FrameProcessor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6933DAA42A686B9400763EB9 /* FrameProcessor.cpp */; };
 		6933DAA92A686BAA00763EB9 /* SetGame.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6933DAA72A686BAA00763EB9 /* SetGame.cpp */; };
 		6933DAAC2A686CB100763EB9 /* FrameProcessorWrapper.mm in Sources */ = {isa = PBXBuildFile; fileRef = 6933DAAA2A686CB100763EB9 /* FrameProcessorWrapper.mm */; };
+		69E8E3E22AB416AC00033398 /* Utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69E8E3E12AB416AC00033398 /* Utils.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -40,6 +42,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		690238BC2AB2B1D300D652A2 /* ThreadPool.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ThreadPool.hpp; sourceTree = "<group>"; };
+		690238BD2AB2B21100D652A2 /* ThreadPool.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ThreadPool.cpp; sourceTree = "<group>"; };
 		6933DA622A6100C300763EB9 /* Set-Finder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Set-Finder.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6933DA652A6100C300763EB9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		6933DA672A6100C300763EB9 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -61,6 +65,7 @@
 		6933DAA82A686BAA00763EB9 /* SetGame.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SetGame.hpp; sourceTree = "<group>"; };
 		6933DAAA2A686CB100763EB9 /* FrameProcessorWrapper.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FrameProcessorWrapper.mm; sourceTree = "<group>"; };
 		6933DAAB2A686CB100763EB9 /* FrameProcessorWrapper.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FrameProcessorWrapper.hpp; sourceTree = "<group>"; };
+		69E8E3E12AB416AC00033398 /* Utils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -89,6 +94,26 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		690238BF2AB2D15300D652A2 /* src */ = {
+			isa = PBXGroup;
+			children = (
+				6933DAA42A686B9400763EB9 /* FrameProcessor.cpp */,
+				690238BD2AB2B21100D652A2 /* ThreadPool.cpp */,
+				6933DAA72A686BAA00763EB9 /* SetGame.cpp */,
+			);
+			path = src;
+			sourceTree = "<group>";
+		};
+		690238C02AB2D16800D652A2 /* include */ = {
+			isa = PBXGroup;
+			children = (
+				6933DAA52A686B9400763EB9 /* FrameProcessor.hpp */,
+				690238BC2AB2B1D300D652A2 /* ThreadPool.hpp */,
+				6933DAA82A686BAA00763EB9 /* SetGame.hpp */,
+			);
+			path = include;
+			sourceTree = "<group>";
+		};
 		6933DA592A6100C300763EB9 = {
 			isa = PBXGroup;
 			children = (
@@ -113,6 +138,7 @@
 		6933DA642A6100C300763EB9 /* Set-Finder */ = {
 			isa = PBXGroup;
 			children = (
+				69E8E3E02AB4166000033398 /* cpp */,
 				6933DA652A6100C300763EB9 /* AppDelegate.swift */,
 				6933DA672A6100C300763EB9 /* SceneDelegate.swift */,
 				6933DA692A6100C300763EB9 /* ViewController.swift */,
@@ -121,12 +147,9 @@
 				6933DA702A6100C600763EB9 /* LaunchScreen.storyboard */,
 				6933DA732A6100C600763EB9 /* Info.plist */,
 				6933DA972A67853300763EB9 /* Set-Finder-Bridging-Header.h */,
-				6933DAA42A686B9400763EB9 /* FrameProcessor.cpp */,
-				6933DAA52A686B9400763EB9 /* FrameProcessor.hpp */,
-				6933DAA72A686BAA00763EB9 /* SetGame.cpp */,
-				6933DAA82A686BAA00763EB9 /* SetGame.hpp */,
-				6933DAAA2A686CB100763EB9 /* FrameProcessorWrapper.mm */,
 				6933DAAB2A686CB100763EB9 /* FrameProcessorWrapper.hpp */,
+				6933DAAA2A686CB100763EB9 /* FrameProcessorWrapper.mm */,
+				69E8E3E12AB416AC00033398 /* Utils.swift */,
 			);
 			path = "Set-Finder";
 			sourceTree = "<group>";
@@ -146,6 +169,15 @@
 				6933DA882A6100C600763EB9 /* Set_FinderUITestsLaunchTests.swift */,
 			);
 			path = "Set-FinderUITests";
+			sourceTree = "<group>";
+		};
+		69E8E3E02AB4166000033398 /* cpp */ = {
+			isa = PBXGroup;
+			children = (
+				690238BF2AB2D15300D652A2 /* src */,
+				690238C02AB2D16800D652A2 /* include */,
+			);
+			path = cpp;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -284,8 +316,10 @@
 				6933DA6A2A6100C300763EB9 /* ViewController.swift in Sources */,
 				6933DA662A6100C300763EB9 /* AppDelegate.swift in Sources */,
 				6933DAA62A686B9400763EB9 /* FrameProcessor.cpp in Sources */,
+				690238BE2AB2B21100D652A2 /* ThreadPool.cpp in Sources */,
 				6933DA682A6100C300763EB9 /* SceneDelegate.swift in Sources */,
 				6933DAA92A686BAA00763EB9 /* SetGame.cpp in Sources */,
+				69E8E3E22AB416AC00033398 /* Utils.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -461,9 +495,11 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = JJ4Q9L27X6;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = JJ4Q9L27X6;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
@@ -483,6 +519,8 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "JD.Set-Finder";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "JD Dev Profile";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "Set-Finder/Set-Finder-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -497,9 +535,11 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = JJ4Q9L27X6;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = JJ4Q9L27X6;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
@@ -519,6 +559,8 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "JD.Set-Finder";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "JD Dev Profile";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "Set-Finder/Set-Finder-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;

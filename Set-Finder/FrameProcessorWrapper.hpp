@@ -12,7 +12,7 @@
 
 @interface FrameProcessorWrapper : NSObject {
 @private
-    void* _frameProcessor;
+   void* _frameProcessor;
 }
 - (FrameProcessorWrapper*) init;
 - (UIImage*) process: (UIImage*) image;
