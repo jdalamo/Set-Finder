@@ -16,12 +16,9 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-// TODO: Delete
-#include <iostream>
 
 namespace tp = ThreadPool;
 
-const int NUM_THREADS = 4; // More than 4 seems to not offer much performance improvement
 const int GAUSSIAN_RADIUS = 101;
 
 typedef std::tuple<int, std::vector<cv::Point>> IndexedContour;
@@ -48,7 +45,8 @@ public:
 
 class FrameProcessor {
 public:
-   FrameProcessor() {}
+   FrameProcessor(
+      int maxThreads) : _threadPool(maxThreads) {}
 
    void process(cv::Mat& frame);
    void log(const std::string& s) {
@@ -95,7 +93,7 @@ private:
 
 private:
    bool _initialized = false;
-   tp::ThreadPool threadPool = tp::ThreadPool(NUM_THREADS);
+   tp::ThreadPool _threadPool;
    float _minCardArea = 0;
    float _minShapeArea = 0;
    int _frameNum = 0;

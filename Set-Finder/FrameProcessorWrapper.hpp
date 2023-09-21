@@ -14,6 +14,6 @@
 @private
    void* _frameProcessor;
 }
-- (FrameProcessorWrapper*) init;
+- (FrameProcessorWrapper*) init: (int) maxThreads;
 - (UIImage*) process: (UIImage*) image;
 @end

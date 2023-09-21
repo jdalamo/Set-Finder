@@ -13,10 +13,9 @@
 
 @implementation FrameProcessorWrapper
 
-- (FrameProcessorWrapper*) init {
+- (FrameProcessorWrapper*) init: (int) maxThreads {
    // Create C++ instance
-   FrameProcessor* frameProcessor = new FrameProcessor;
-   frameProcessor->log("init");
+   FrameProcessor* frameProcessor = new FrameProcessor(maxThreads);
    _frameProcessor = (void*)frameProcessor;
 
    return self;

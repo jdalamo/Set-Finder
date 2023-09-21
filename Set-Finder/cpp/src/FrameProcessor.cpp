@@ -126,7 +126,7 @@ FrameProcessor::process(cv::Mat& frame)
    std::unordered_map<int, std::vector<SetGame::Shape>> cardIndexToShapesMap;
    pthread_mutex_t mapMutex;
    pthread_mutex_init(&mapMutex, NULL);
-   threadPool.parallelize<std::vector<IndexedContour>>(classifyShapes, indexedShapeContours,
+   _threadPool.parallelize<std::vector<IndexedContour>>(classifyShapes, indexedShapeContours,
       [&]() -> ClassifyShapeArg* {
          ClassifyShapeArg* arg = new ClassifyShapeArg(
             hierarchy, frame, cardIndexToShapesMap,
@@ -266,9 +266,6 @@ FrameProcessor::classifyShape(
    std::unordered_map<int, std::vector<SetGame::Shape>>& cardIndexToShapeMap,
    pthread_mutex_t* mapMutex)
 {
-   const int shapeIndex = std::get<0>(indexedShape);
-   const int parentIndex = hierarchy[shapeIndex][PARENT_HIERARCHY_INDEX];
-
    const std::vector<cv::Point>& contour = std::get<1>(indexedShape);
 
    // Detect contour's symbol
@@ -362,6 +359,8 @@ FrameProcessor::classifyShape(
       shading = SetGame::Shading::SOLID;
    }
 
+   const int shapeIndex = std::get<0>(indexedShape);
+   const int parentIndex = hierarchy[shapeIndex][PARENT_HIERARCHY_INDEX];
    SetGame::Shape shape(color, symbol, shading);
    pthread_mutex_lock(mapMutex);
    cardIndexToShapeMap[parentIndex].push_back(shape);

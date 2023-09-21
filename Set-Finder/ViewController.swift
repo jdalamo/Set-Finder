@@ -8,13 +8,15 @@
 import UIKit
 import AVFoundation
 
+let FRAME_PROCESSOR_MAX_THREADS = 4 // More than 4 seems to not offer much performance improvement
+
 class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
    @IBOutlet weak var imageView: UIImageView!
    @IBOutlet weak var pauseButton: UIButton!
 
    private var captureSession: AVCaptureSession = AVCaptureSession()
    private let videoDataOutput = AVCaptureVideoDataOutput()
-   private var frameProcessor = FrameProcessorWrapper()
+   private var frameProcessor = FrameProcessorWrapper(Int32(FRAME_PROCESSOR_MAX_THREADS))
    private var shouldCapture = true
 
    override func viewDidLoad()
