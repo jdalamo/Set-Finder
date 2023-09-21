@@ -7,8 +7,8 @@
 
 #import <opencv2/opencv.hpp>
 #import <opencv2/imgcodecs/ios.h>
-#import "FrameProcessor.hpp"
 #import "FrameProcessorWrapper.hpp"
+#import "FrameProcessor.hpp"
 #import <Foundation/Foundation.h>
 
 @implementation FrameProcessorWrapper

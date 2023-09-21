@@ -98,4 +98,3 @@ private:
    cv::Mat _gaussianResult;
    int _thresholdVal = 0;
 };
-

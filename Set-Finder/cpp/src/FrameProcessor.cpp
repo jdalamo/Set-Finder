@@ -245,7 +245,7 @@ FrameProcessor::classifyShapes(
    std::for_each(arg->start, arg->end,
       [&](const IndexedContour& indexedShape) {
          classifyShape(indexedShape, arg->hierarchy, arg->frame,
-                       arg->cardIndexToShapesMap, arg->mapMutex);
+            arg->cardIndexToShapesMap, arg->mapMutex);
       }
    );
 }
