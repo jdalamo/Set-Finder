@@ -14,6 +14,8 @@
 
 namespace ThreadPool {
 
+const int DEFAULT_NUM_THREADS = 3;
+
 template <typename T>
 struct PoolTaskArg {
    typename T::iterator start;
@@ -41,7 +43,7 @@ public:
 
 class ThreadPool {
 public:
-   ThreadPool(int numThreads);
+   ThreadPool(int numThreads=DEFAULT_NUM_THREADS);
    ~ThreadPool();
 
    void enqueue(PoolTask* const task);

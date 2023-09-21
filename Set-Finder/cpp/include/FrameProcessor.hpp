@@ -49,20 +49,17 @@ public:
       int maxThreads) : _threadPool(maxThreads) {}
 
    void process(cv::Mat& frame);
-   void log(const std::string& s) {
-      std::cout << s << std::endl;
-   }
 
 private:
    bool cardFilter(
       const std::tuple<int, std::vector<cv::Point>>& indexedContour,
       const std::vector<cv::Vec4i>& hierarchy,
-      std::vector<int>& cardIndices) const;
+      std::unordered_set<int>& cardIndices) const;
 
    bool shapeFilter(
       const std::tuple<int, std::vector<cv::Point>>& indexedContour,
       const std::vector<cv::Vec4i>& hierarchy,
-      const std::vector<int>& cardIndices) const;
+      const std::unordered_set<int>& cardIndices) const;
 
    static void classifyShapes(
       void* voidArg);
@@ -100,6 +97,5 @@ private:
    cv::Size _gaussianSize = cv::Size(GAUSSIAN_RADIUS, GAUSSIAN_RADIUS);
    cv::Mat _gaussianResult;
    int _thresholdVal = 0;
-    double _totalDuration;
 };
 

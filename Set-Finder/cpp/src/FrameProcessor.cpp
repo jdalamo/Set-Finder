@@ -7,9 +7,6 @@
 
 #include "FrameProcessor.hpp"
 #include "SetGame.hpp"
-// TODO: Delete
-#include <chrono>
-#include <iostream>
 
 const float MIN_CARD_AREA_PERCENTAGE = 0.007;
 const int THRESHOLD_REFRESH_RATE = 6;
@@ -54,7 +51,6 @@ const std::vector<cv::Scalar> SET_HIGHLIGHT_COLORS = {
 void
 FrameProcessor::process(cv::Mat& frame)
 {
-    auto start = std::chrono::high_resolution_clock::now();
    /**
     * If this is the first frame processed we need to set some member
     * variables.
@@ -101,7 +97,7 @@ FrameProcessor::process(cv::Mat& frame)
 
    // Filter cards
    std::vector<IndexedContour> indexedCardContours;
-   std::vector<int> cardIndices;
+   std::unordered_set<int> cardIndices;
    std::copy_if(indexedContours.begin(), indexedContours.end(), std::back_inserter(indexedCardContours),
       [&](IndexedContour& indexedContour) {
          return cardFilter(indexedContour,
@@ -180,17 +176,13 @@ FrameProcessor::process(cv::Mat& frame)
       }
       i++;
    }
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    _totalDuration += duration.count();
-    std::cout << "Average processing time: " << _totalDuration / _frameNum << std::endl;
 }
 
 bool
 FrameProcessor::cardFilter(
    const IndexedContour& indexedContour,
    const std::vector<cv::Vec4i>& hierarchy,
-   std::vector<int>& cardIndices) const
+   std::unordered_set<int>& cardIndices) const
 {
    int index = std::get<0>(indexedContour);
    const std::vector<cv::Point>& contour = std::get<1>(indexedContour);
@@ -214,7 +206,7 @@ FrameProcessor::cardFilter(
    float aspectRatio = ((float)std::max(rect.height, rect.width) / std::min(rect.height, rect.width));
    if (aspectRatio < MIN_ASPECT_RATIO || aspectRatio > MAX_ASPECT_RATIO) return false;
 
-   cardIndices.push_back(index);
+   cardIndices.insert(index);
    return true;
 }
 
@@ -222,13 +214,13 @@ bool
 FrameProcessor::shapeFilter(
    const IndexedContour& indexedContour,
    const std::vector<cv::Vec4i>& hierarchy,
-   const std::vector<int>& cardIndices) const
+   const std::unordered_set<int>& cardIndices) const
 {
    int index = std::get<0>(indexedContour);
    const std::vector<cv::Point>& contour = std::get<1>(indexedContour);
 
    int parentIndex = hierarchy[index][PARENT_HIERARCHY_INDEX];
-   if (std::find(cardIndices.begin(), cardIndices.end(), parentIndex) == cardIndices.end()) {
+   if (cardIndices.find(parentIndex) == cardIndices.end()) {
       // Current contour is not contained within a card
       return false;
    }
