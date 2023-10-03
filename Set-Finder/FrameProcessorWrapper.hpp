@@ -12,8 +12,8 @@
 
 @interface FrameProcessorWrapper : NSObject {
 @private
-    void* _frameProcessor;
+   void* _frameProcessor;
 }
-- (FrameProcessorWrapper*) init;
+- (FrameProcessorWrapper*) init: (int) maxThreads;
 - (UIImage*) process: (UIImage*) image;
 @end
