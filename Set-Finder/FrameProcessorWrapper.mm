@@ -13,25 +13,25 @@
 
 @implementation FrameProcessorWrapper
 
-- (FrameProcessorWrapper*) init {
-    // Create C++ instance
-    _frameProcessor = (void*)new FrameProcessor;
-    return self;
+- (FrameProcessorWrapper*) init: (int) maxThreads {
+   // Create C++ instance
+   _frameProcessor = (void*)new FrameProcessor(maxThreads);
+   return self;
 }
 
 - (UIImage*) process: (UIImage*) image {
-    // Convert UIImage to OpenCV Mat type
-    cv::Mat convertedImage;
-    UIImageToMat(image, convertedImage, true);
+   cv::Mat frame;
 
-    // Convert colorspace
-    cv::Mat frame;
-    cv::cvtColor(convertedImage, frame, cv::COLOR_RGBA2RGB);
+   // Convert UIImage to OpenCV Mat type
+   UIImageToMat(image, frame, true);
 
-    FrameProcessor* frameProcessor = (FrameProcessor*)_frameProcessor;
-    frameProcessor->process(frame);
+   // Convert colorspace
+   cv::cvtColor(frame, frame, cv::COLOR_RGBA2RGB);
 
-    return MatToUIImage(frame);
+   FrameProcessor* frameProcessor = (FrameProcessor*)_frameProcessor;
+   frameProcessor->process(frame);
+
+   return MatToUIImage(frame);
 }
 
 @end
