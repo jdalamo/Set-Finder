@@ -14,125 +14,125 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
    @IBOutlet weak var imageView: UIImageView!
    @IBOutlet weak var pauseButton: UIButton!
     
-    private var captureSession: AVCaptureSession = AVCaptureSession()
-    private let videoDataOutput = AVCaptureVideoDataOutput()
-    private var frameProcessor = FrameProcessorWrapper(Int32(FRAME_PROCESSOR_MAX_THREADS))
-    private var shouldCapture = true
+   private var captureSession: AVCaptureSession = AVCaptureSession()
+   private let videoDataOutput = AVCaptureVideoDataOutput()
+   private var frameProcessor = FrameProcessorWrapper(Int32(FRAME_PROCESSOR_MAX_THREADS))
+   private var shouldCapture = true
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
+   override func viewDidLoad() {
+      super.viewDidLoad()
 
-        // TODO: update to use UIWindowScene.requestGeometryUpdate()
-        let orientation = getDeviceOrientation().rawValue
-        UIDevice.current.setValue(orientation, forKey: "orientation")
+      // TODO: update to use UIWindowScene.requestGeometryUpdate()
+      let orientation = getDeviceOrientation().rawValue
+      UIDevice.current.setValue(orientation, forKey: "orientation")
 
-        pauseButton.addTarget(self, action: #selector(pauseButtonTapped), for: .touchUpInside)
+      pauseButton.addTarget(self, action: #selector(pauseButtonTapped), for: .touchUpInside)
 
-        self.addCameraInput()
-        self.getFrames()
+      self.addCameraInput()
+      self.getFrames()
 
-        DispatchQueue.global(qos: .userInitiated).async {
-            self.captureSession.startRunning() // Should be called from background thread
-        }
-    }
+      DispatchQueue.global(qos: .userInitiated).async {
+         self.captureSession.startRunning() // Should be called from background thread
+      }
+   }
 
-    override var supportedInterfaceOrientations: UIInterfaceOrientationMask
-    {
-        return .landscape
-    }
+   override var supportedInterfaceOrientations: UIInterfaceOrientationMask
+   {
+      return .landscape
+   }
 
-    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator)
-    {
-        super.viewWillTransition(to: size, with: coordinator)
-        updateConnectionVideoOrientation()
-    }
+   override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator)
+   {
+      super.viewWillTransition(to: size, with: coordinator)
+      updateConnectionVideoOrientation()
+   }
 
-    @objc private func pauseButtonTapped(sender: UIButton)
-    {
-        self.shouldCapture = !self.shouldCapture
+   @objc private func pauseButtonTapped(sender: UIButton)
+   {
+      self.shouldCapture = !self.shouldCapture
 
-        if (self.shouldCapture) {
-            sender.setImage(UIImage(systemName: "pause.circle.fill"), for: .normal)
-        } else {
-            sender.setImage(UIImage(systemName: "play.circle.fill"), for: .normal)
-        }
-    }
+      if (self.shouldCapture) {
+         sender.setImage(UIImage(systemName: "pause.circle.fill"), for: .normal)
+      } else {
+         sender.setImage(UIImage(systemName: "play.circle.fill"), for: .normal)
+      }
+   }
 
-    private func updateConnectionVideoOrientation(inverse: Bool = true)
-    {
-        var videoOrientation: AVCaptureVideoOrientation
-        switch (getDeviceOrientation()) {
-        case .landscapeLeft:
+   private func updateConnectionVideoOrientation(inverse: Bool = true)
+   {
+      var videoOrientation: AVCaptureVideoOrientation
+      switch (getDeviceOrientation()) {
+         case .landscapeLeft:
             videoOrientation = inverse ? .landscapeRight : .landscapeLeft
             break
-        case .landscapeRight:
+         case .landscapeRight:
             videoOrientation = inverse ? .landscapeLeft : .landscapeRight
             break
-        default:
+         default:
             print("Unsupported device orientation")
             return
-        }
+         }
 
-        guard let connection = self.videoDataOutput.connection(with: AVMediaType.video),
+         guard let connection = self.videoDataOutput.connection(with: AVMediaType.video),
             connection.isVideoOrientationSupported else {
             return
-        }
+         }
 
-        connection.videoOrientation = videoOrientation
-    }
+         connection.videoOrientation = videoOrientation
+   }
 
-    private func addCameraInput() {
-        guard let device = AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.builtInWideAngleCamera, .builtInDualCamera, .builtInTrueDepthCamera],
-            mediaType: .video,
-            position: .back
-        ).devices.first else {
-            fatalError("No back camera detected.")
-        }
+   private func addCameraInput() {
+      guard let device = AVCaptureDevice.DiscoverySession(
+         deviceTypes: [.builtInWideAngleCamera, .builtInDualCamera, .builtInTrueDepthCamera],
+         mediaType: .video,
+         position: .back
+      ).devices.first else {
+         fatalError("No back camera detected.")
+      }
 
-        let cameraInput = try! AVCaptureDeviceInput(device: device)
-        self.captureSession.addInput(cameraInput)
-    }
+      let cameraInput = try! AVCaptureDeviceInput(device: device)
+      self.captureSession.addInput(cameraInput)
+   }
 
-    private func getFrames() {
-        videoDataOutput.videoSettings = [
-            (kCVPixelBufferPixelFormatTypeKey as NSString) : NSNumber(value: kCVPixelFormatType_32BGRA)] as [String: Any]
-        videoDataOutput.alwaysDiscardsLateVideoFrames = true
-        videoDataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "camera.frame.processing.queue"))
-        self.captureSession.addOutput(videoDataOutput)
+   private func getFrames() {
+      videoDataOutput.videoSettings = [
+         (kCVPixelBufferPixelFormatTypeKey as NSString) : NSNumber(value: kCVPixelFormatType_32BGRA)] as [String: Any]
+      videoDataOutput.alwaysDiscardsLateVideoFrames = true
+      videoDataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "camera.frame.processing.queue"))
+      self.captureSession.addOutput(videoDataOutput)
 
-        updateConnectionVideoOrientation(inverse: false)
-    }
+      updateConnectionVideoOrientation(inverse: false)
+   }
 
-    func captureOutput(
-        _ output: AVCaptureOutput,
-        didOutput sampleBuffer: CMSampleBuffer,
-        from connection: AVCaptureConnection)
-    {
-        if (!shouldCapture) {
-            return
-        }
-        guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        CVPixelBufferLockBaseAddress(imageBuffer, CVPixelBufferLockFlags.readOnly)
-        let baseAddress = CVPixelBufferGetBaseAddress(imageBuffer)
-        let bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer)
-        let width = CVPixelBufferGetWidth(imageBuffer)
-        let height = CVPixelBufferGetHeight(imageBuffer)
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        var bitmapInfo: UInt32 = CGBitmapInfo.byteOrder32Little.rawValue
-        bitmapInfo |= CGImageAlphaInfo.premultipliedFirst.rawValue & CGBitmapInfo.alphaInfoMask.rawValue
-        let context = CGContext(data: baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: bitmapInfo)
-        guard let quartzImage = context?.makeImage() else { return }
-        CVPixelBufferUnlockBaseAddress(imageBuffer, CVPixelBufferLockFlags.readOnly)
-        let image = UIImage(cgImage: quartzImage)
+   func captureOutput(
+      _ output: AVCaptureOutput,
+      didOutput sampleBuffer: CMSampleBuffer,
+      from connection: AVCaptureConnection)
+   {
+      if (!shouldCapture) {
+         return
+      }
+      guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+      CVPixelBufferLockBaseAddress(imageBuffer, CVPixelBufferLockFlags.readOnly)
+      let baseAddress = CVPixelBufferGetBaseAddress(imageBuffer)
+      let bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer)
+      let width = CVPixelBufferGetWidth(imageBuffer)
+      let height = CVPixelBufferGetHeight(imageBuffer)
+      let colorSpace = CGColorSpaceCreateDeviceRGB()
+      var bitmapInfo: UInt32 = CGBitmapInfo.byteOrder32Little.rawValue
+      bitmapInfo |= CGImageAlphaInfo.premultipliedFirst.rawValue & CGBitmapInfo.alphaInfoMask.rawValue
+      let context = CGContext(data: baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: bitmapInfo)
+      guard let quartzImage = context?.makeImage() else { return }
+      CVPixelBufferUnlockBaseAddress(imageBuffer, CVPixelBufferLockFlags.readOnly)
+      let image = UIImage(cgImage: quartzImage)
 
-        guard let processedImage = frameProcessor?.process(image) else {
-            fatalError("Problem unwrapping frameProcessor")
-        }
+      guard let processedImage = frameProcessor?.process(image) else {
+         fatalError("Problem unwrapping frameProcessor")
+      }
 
-        DispatchQueue.main.async {
-            self.imageView.image = processedImage
-        }
-    }
+      DispatchQueue.main.async {
+         self.imageView.image = processedImage
+      }
+   }
 }
 
