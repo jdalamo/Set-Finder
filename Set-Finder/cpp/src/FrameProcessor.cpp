@@ -9,8 +9,17 @@
 #include "SetGame.hpp"
 
 const float MIN_CARD_AREA_PERCENTAGE = 0.007;
-const int THRESHOLD_REFRESH_RATE = 6;
-const float THRESHOLD_VAL_PERCENTAGE = 0.8;
+
+// Thresholding constants
+/**
+ * BLOCK_SIZE defines the size of the pixel neighborhood used to
+ * calculate the mean intensity to threshold a given pixel.
+ */
+const int BLOCK_SIZE = 11;
+/**
+ * C defines a constant that is subtracted from the calculated mean.
+ */
+const int C = 8;
 
 const int CHILD_HIERARCHY_INDEX = 2;
 const float CARD_APPROX_ACCURACY = 0.04;
@@ -21,13 +30,19 @@ const float MIN_CARD_INTENSITY_PERCENT = 0.45;
 const int PARENT_HIERARCHY_INDEX = 3;
 const float SHAPE_APPROX_ACCURACY = 0.08;
 
+// Color constants
+const int RED_MIN = 340;
+const int RED_MAX = 65;
+const int PURPLE_MIN = 260;
+const int PURPLE_MAX = 340;
+const int GREEN_MIN = 65;
+const int GREEN_MAX = 180;
+
 const float SHAPE_MATCH_DIAMOND_THRESHOLD = 0.065;
 const float SOLIDITY_SQUIGGLE_PILL_THRESHOLD = 0.9;
 const int RED_BLUE_DIFF_PURPLE_THRESHOLD = 15;
 const float SOLID_SHADING_PERCENT_THRESHOLD = 0.53;
 const float SOLID_SHADING_PURPLE_PERCENT_THRESHOLD = 0.25;
-
-const cv::Scalar PURE_RED = cv::Scalar(255,0,0);
 
 const float BORDER_CONTOUR_SCALAR = -0.2;
 const float FILL_CONTOUR_SCALAR = -0.4;
@@ -64,22 +79,9 @@ FrameProcessor::process(cv::Mat& frame)
    cv::Mat grayScaleFrame;
    cv::cvtColor(frame, grayScaleFrame, cv::COLOR_BGR2GRAY);
 
-   if (_frameNum % THRESHOLD_REFRESH_RATE == 0) {
-      /**
-       * Updating the threshold is an expensive operation so only do it once
-       * every THRESHOLD_REFRESH_RATE frames.
-       * Average runtime: 10 milliseconds
-       */
-      // Apply Gaussian blur and then get brightest value to set threshold
-      cv::GaussianBlur(grayScaleFrame, _gaussianResult, _gaussianSize, 0);
-      double maxVal;
-      cv::minMaxLoc(_gaussianResult, NULL, &maxVal);
-      _thresholdVal = (int)(maxVal * THRESHOLD_VAL_PERCENTAGE);
-   }
-   _frameNum++;
-
    cv::Mat threshold;
-   cv::threshold(grayScaleFrame, threshold, _thresholdVal, 255, cv::THRESH_TOZERO);
+   cv::adaptiveThreshold(grayScaleFrame, threshold, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY,
+      BLOCK_SIZE, C);
    std::vector<std::vector<cv::Point>> contours;
    std::vector<cv::Vec4i> hierarchy;
    cv::findContours(threshold, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_NONE);
@@ -296,19 +298,24 @@ FrameProcessor::classifyShape(
    cv::drawContours(borderContourMask, border, 0, cv::Scalar(0), -1);
    cv::Scalar meanColor = cv::mean(frame, borderContourMask);
 
-   int red = (int)meanColor[0];
+   int blue = (int)meanColor[0];
    int green = (int)meanColor[1];
-   int blue = (int)meanColor[2];
-   int colorMax = std::max({ red, green, blue });
-   int colorSum = red + green + blue;
+   int red = (int)meanColor[2];
 
+   std::tuple<int, int, int> hsv =
+      bgrToHsv(blue, green, red);
+   const int hue = std::get<0>(hsv);
    SetGame::Color color;
-   if (colorMax == green) {
-      color = SetGame::Color::GREEN;
-   } else if (colorMax == blue || abs(red - blue) < RED_BLUE_DIFF_PURPLE_THRESHOLD) {
-      color = SetGame::Color::PURPLE;
-   } else {
+   if (hue > RED_MIN || hue <= RED_MAX) {
       color = SetGame::Color::RED;
+   } else if (hue > PURPLE_MIN && hue <= PURPLE_MAX) {
+      color = SetGame::Color::PURPLE;
+   } else if (hue > GREEN_MIN && hue <= GREEN_MAX) {
+      color = SetGame::Color::GREEN;
+   } else {
+      std::cout << "ERROR: undetected color: " << hue << "|" <<
+         std::get<1>(hsv) << "|" << std::get<2>(hsv) << std::endl;
+      color = SetGame::Color::UNKNOWN;
    }
 
    // Detect contour's shading
@@ -412,6 +419,46 @@ FrameProcessor::colorDifference(
    double blueDiff = ((255 - redAvg) / 256 + 2) * pow(blueDelta, 2);
 
    return std::sqrt(redDiff + greenDiff + blueDiff);
+}
+
+std::tuple<int, int, int>
+FrameProcessor::bgrToHsv(
+   const int b,
+   const int g,
+   const int r)
+{
+   double blue = b / 255.0;
+   double green = g / 255.0;
+   double red = r / 255.0;
+
+   double cMax = std::max({ blue, green, red });
+   double cMin = std::min({ blue, green, red });
+   double cDiff = cMax - cMin;
+
+   int hue;
+   int saturation;
+   int value;
+
+   if (cMax == cMin) {
+      hue = 0;
+   } else if (cMax == red) {
+      hue = (int)(60 * ((green - blue) / cDiff) + 360) % 360;
+   } else if (cMax == green) {
+      hue = (int)(60 * ((blue - red) / cDiff) + 120) % 360;
+   } else if (cMax == blue) {
+      hue = (int)(60 * ((red - green) / cDiff) + 240) % 360;
+   }
+
+   if (cMax == 0) {
+      saturation = 0;
+   } else {
+      saturation = std::round(cDiff / cMax * 100);
+   }
+
+   value = std::round(cMax * 100);
+
+   std::tuple<int, int, int> output(hue, saturation, value);
+   return output;
 }
 
 std::vector<SetGame::Set>

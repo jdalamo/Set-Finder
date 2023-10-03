@@ -16,11 +16,8 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <tuple>
 
 namespace tp = ThreadPool;
-
-const int GAUSSIAN_RADIUS = 101;
 
 typedef std::tuple<int, std::vector<cv::Point>> IndexedContour;
 class ClassifyShapeArg : public tp::PoolTaskArg<std::vector<IndexedContour>> {
@@ -86,6 +83,11 @@ private:
       const cv::Scalar& color1,
       const cv::Scalar& color2);
 
+   static std::tuple<int, int, int> bgrToHsv(
+      const int b,
+      const int g,
+      const int r);
+
    std::vector<SetGame::Set> getSets(
       const std::vector<SetGame::Card> indexedCards) const;
 
@@ -94,8 +96,4 @@ private:
    tp::ThreadPool _threadPool;
    float _minCardArea = 0;
    float _minShapeArea = 0;
-   int _frameNum = 0;
-   cv::Size _gaussianSize = cv::Size(GAUSSIAN_RADIUS, GAUSSIAN_RADIUS);
-   cv::Mat _gaussianResult;
-   int _thresholdVal = 0;
 };
