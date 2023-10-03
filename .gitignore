@@ -1,3 +1,5 @@
 .DS_Store
 /opencv2.framework
 Set-Finder.xcodeproj/
+.vscode/
+
