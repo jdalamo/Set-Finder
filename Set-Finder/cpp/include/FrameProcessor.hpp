@@ -19,7 +19,9 @@
 
 namespace tp = ThreadPool;
 
-typedef std::tuple<int, std::vector<cv::Point>> IndexedContour;
+typedef std::vector<cv::Point> Contour;
+typedef std::tuple<int, Contour> IndexedContour;
+
 class ClassifyShapeArg : public tp::PoolTaskArg<std::vector<IndexedContour>> {
 public:
    ClassifyShapeArg(
@@ -51,6 +53,7 @@ public:
 private:
    bool cardFilter(
       const IndexedContour& indexedContour,
+      const std::vector<Contour>& contours,
       const std::vector<cv::Vec4i>& hierarchy,
       std::unordered_set<int>& cardIndices) const;
 
@@ -70,7 +73,7 @@ private:
       pthread_mutex_t* mapMutex);
 
    static void scaleContour(
-      std::vector<cv::Point>& contour,
+      Contour& contour,
       const float scalar);
 
    static cv::Point scalePoint(
@@ -95,5 +98,7 @@ private:
    bool _initialized = false;
    tp::ThreadPool _threadPool;
    float _minCardArea = 0;
+   float _maxCardArea = 0;
    float _minShapeArea = 0;
+   float _maxShapeArea = 0;
 };

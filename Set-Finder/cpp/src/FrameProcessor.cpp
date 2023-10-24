@@ -10,22 +10,25 @@
 
 const float MIN_CARD_AREA_PERCENTAGE = 0.007;
 
-// Thresholding constants
 /**
+ * Thresholding Constants
+ *
  * BLOCK_SIZE defines the size of the pixel neighborhood used to
  * calculate the mean intensity to threshold a given pixel.
- */
-const int BLOCK_SIZE = 11;
-/**
+ *
  * C defines a constant that is subtracted from the calculated mean.
+ *
+ * Both of these constants were derived by programatically trying
+ * every value from 3-210 for BLOCK_SIZE and 1-51 for C but there
+ * could be some room for improvement with more testing.
  */
-const int C = 8;
+const int BLOCK_SIZE = 93;
+const int C = 11;
 
 const int CHILD_HIERARCHY_INDEX = 2;
 const float CARD_APPROX_ACCURACY = 0.04;
 const float MIN_ASPECT_RATIO = 1.0;
 const float MAX_ASPECT_RATIO = 2.0;
-const float MIN_CARD_INTENSITY_PERCENT = 0.45;
 
 const int PARENT_HIERARCHY_INDEX = 3;
 const float SHAPE_APPROX_ACCURACY = 0.08;
@@ -40,9 +43,6 @@ const int GREEN_MAX = 180;
 
 const float SHAPE_MATCH_DIAMOND_THRESHOLD = 0.065;
 const float SOLIDITY_SQUIGGLE_PILL_THRESHOLD = 0.9;
-const int RED_BLUE_DIFF_PURPLE_THRESHOLD = 15;
-const float SOLID_SHADING_PERCENT_THRESHOLD = 0.53;
-const float SOLID_SHADING_PURPLE_PERCENT_THRESHOLD = 0.25;
 
 const float BORDER_CONTOUR_SCALAR = -0.2;
 const float FILL_CONTOUR_SCALAR = -0.4;
@@ -54,6 +54,7 @@ const int STRIPED_SHADING_CONTRAST_THRESHOLD = 125;
 
 const float HIGHLIGHT_SCALE_FACTOR = 0.2;
 
+// TODO: make sure this is exhaustive
 const std::vector<cv::Scalar> SET_HIGHLIGHT_COLORS = {
    cv::Scalar(255,255,0),
    cv::Scalar(255,97,237),
@@ -71,18 +72,19 @@ FrameProcessor::process(cv::Mat& frame)
     * variables.
     */
    if (!_initialized) {
+      _maxCardArea = frame.size().width * frame.size().height * .2;
       _minCardArea = frame.size().width * frame.size().height * MIN_CARD_AREA_PERCENTAGE;
+      _maxShapeArea = _minCardArea * .8;
       _minShapeArea = _minCardArea / 7;
       _initialized = true;
    }
 
    cv::Mat grayScaleFrame;
    cv::cvtColor(frame, grayScaleFrame, cv::COLOR_BGR2GRAY);
-
    cv::Mat threshold;
    cv::adaptiveThreshold(grayScaleFrame, threshold, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY,
       BLOCK_SIZE, C);
-   std::vector<std::vector<cv::Point>> contours;
+   std::vector<Contour> contours;
    std::vector<cv::Vec4i> hierarchy;
    cv::findContours(threshold, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_NONE);
    if (contours.empty()) return;
@@ -91,7 +93,7 @@ FrameProcessor::process(cv::Mat& frame)
    int contourIndex = 0;
    std::vector<IndexedContour> indexedContours;
    std::transform(contours.begin(), contours.end(), std::back_inserter(indexedContours),
-      [&](std::vector<cv::Point>& contour) {
+      [&](Contour& contour) {
          contourIndex++;
          return IndexedContour { contourIndex - 1, contour };
       }
@@ -103,6 +105,7 @@ FrameProcessor::process(cv::Mat& frame)
    std::copy_if(indexedContours.begin(), indexedContours.end(), std::back_inserter(indexedCardContours),
       [&](IndexedContour& indexedContour) {
          return cardFilter(indexedContour,
+                           contours,
                            hierarchy,
                            cardIndices);
       }
@@ -182,23 +185,40 @@ FrameProcessor::process(cv::Mat& frame)
 bool
 FrameProcessor::cardFilter(
    const IndexedContour& indexedContour,
+   const std::vector<Contour>& contours,
    const std::vector<cv::Vec4i>& hierarchy,
    std::unordered_set<int>& cardIndices) const
 {
    int index = std::get<0>(indexedContour);
-   const std::vector<cv::Point>& contour = std::get<1>(indexedContour);
+   const Contour& contour = std::get<1>(indexedContour);
 
-   if (hierarchy[index][CHILD_HIERARCHY_INDEX] < 0) {
+   const int childIndex = hierarchy[index][CHILD_HIERARCHY_INDEX];
+   if (childIndex < 0) {
       // Contour has no child contours
       return false;
    }
 
    // Area check
-   if (cv::contourArea(contour) < _minCardArea) return false;
+   const double area = cv::contourArea(contour);
+   if (area < _minCardArea || area > _maxCardArea) return false;
+
+   /**
+    * Cards have two borders--an interior and an exterior.  We want to filter
+    * out exterior borders and only consider interior borders so that the children
+    * of those card contours will contain shapes.  Do this by first seeing if the contour's
+    * child is already classified as a card.  If it is, return false.  If it's not, then
+    * compare the area of the current contour with its child--if it's close then this is an
+    * exterior contour.
+    */
+   auto it = cardIndices.find(childIndex);
+   if (it != cardIndices.end()) return false;
+
+   const double childArea = cv::contourArea(contours[childIndex]);
+   if (childArea / area > .5) return false;
 
    // Approximate contour is rectangle check
    double peri = cv::arcLength(contour, true) * CARD_APPROX_ACCURACY;
-   std::vector<cv::Point> approx;
+   Contour approx;
    cv::approxPolyDP(contour, approx, peri, true);
    if (approx.size() != 4) return false;
 
@@ -218,7 +238,7 @@ FrameProcessor::shapeFilter(
    const std::unordered_set<int>& cardIndices) const
 {
    int index = std::get<0>(indexedContour);
-   const std::vector<cv::Point>& contour = std::get<1>(indexedContour);
+   const Contour& contour = std::get<1>(indexedContour);
 
    int parentIndex = hierarchy[index][PARENT_HIERARCHY_INDEX];
    if (cardIndices.find(parentIndex) == cardIndices.end()) {
@@ -226,12 +246,18 @@ FrameProcessor::shapeFilter(
       return false;
    }
 
-   // Area check
-   if (cv::contourArea(contour) < _minShapeArea) return false;
+   /**
+    * Area check
+    * The _minShapeArea condition filters out small smudges / artifacts
+    * and the _maxShapeArea condition filters out the inner border of the
+    * cards
+    */
+   const double area = cv::contourArea(contour);
+   if (area < _minShapeArea || area > _maxShapeArea) return false;
 
    // Approximate contour is rectangle check
    double peri = cv::arcLength(contour, true) * SHAPE_APPROX_ACCURACY;
-   std::vector<cv::Point> approx;
+   Contour approx;
    cv::approxPolyDP(contour, approx, peri, true);
    if (approx.size() != 4) return false;
 
@@ -260,18 +286,18 @@ FrameProcessor::classifyShape(
    pthread_mutex_t* mapMutex)
 {
    int index = std::get<0>(indexedShape);
-   const std::vector<cv::Point>& contour = std::get<1>(indexedShape);
+   const Contour& contour = std::get<1>(indexedShape);
 
    // Detect contour's symbol
    double peri = cv::arcLength(contour, true) * SHAPE_APPROX_ACCURACY;
-   std::vector<cv::Point> approx;
+   Contour approx;
    cv::approxPolyDP(contour, approx, peri, true);
    double shapeMatchRatio = cv::matchShapes(contour, approx, cv::CONTOURS_MATCH_I1, 0);
    SetGame::Symbol symbol;
    if (shapeMatchRatio < SHAPE_MATCH_DIAMOND_THRESHOLD) {
       symbol = SetGame::Symbol::DIAMOND;
    } else {
-      std::vector<cv::Point> hull;
+      Contour hull;
       cv::convexHull(contour, hull);
       double solidityRatio = cv::contourArea(contour) / cv::contourArea(hull);
       symbol = (solidityRatio < SOLIDITY_SQUIGGLE_PILL_THRESHOLD) ?
@@ -284,16 +310,16 @@ FrameProcessor::classifyShape(
    int cx = (int)(M.m10 / M.m00);
    int cy = (int)(M.m01 / M.m00);
 
-   std::vector<cv::Point> borderContour;
+   Contour borderContour;
    std::transform(contour.begin(), contour.end(), std::back_inserter(borderContour),
       [&](const cv::Point& point) {
          return scalePoint(point, cx, cy, BORDER_CONTOUR_SCALAR);
       }
    );
-   std::vector<std::vector<cv::Point>> border = { borderContour };
+   std::vector<Contour> border = { borderContour };
 
    cv::Mat borderContourMask = cv::Mat::zeros(frame.size(), CV_8U);
-   std::vector<std::vector<cv::Point>> c = { contour };
+   std::vector<Contour> c = { contour };
    cv::drawContours(borderContourMask, c, 0, cv::Scalar(255), -1);
    cv::drawContours(borderContourMask, border, 0, cv::Scalar(0), -1);
    cv::Scalar meanColor = cv::mean(frame, borderContourMask);
@@ -319,7 +345,7 @@ FrameProcessor::classifyShape(
    }
 
    // Detect contour's shading
-   std::vector<cv::Point> fillContour, outlineContourExterior, outlineContourInterior;
+   Contour fillContour, outlineContourExterior, outlineContourInterior;
    std::transform(contour.begin(), contour.end(), std::back_inserter(fillContour),
       [&](const cv::Point& point) {
          return scalePoint(point, cx, cy, FILL_CONTOUR_SCALAR);
@@ -336,14 +362,14 @@ FrameProcessor::classifyShape(
       }
    );
 
-   std::vector<std::vector<cv::Point>> outlineExterior = { outlineContourExterior };
-   std::vector<std::vector<cv::Point>> outlineInterior = { outlineContourInterior };
+   std::vector<Contour> outlineExterior = { outlineContourExterior };
+   std::vector<Contour> outlineInterior = { outlineContourInterior };
    cv::Mat outlineMask = cv::Mat::zeros(frame.size(), CV_8U);
    cv::drawContours(outlineMask, outlineExterior, 0, cv::Scalar(255), -1);
    cv::drawContours(outlineMask, outlineInterior, 0, cv::Scalar(0), -1);
    cv::Scalar meanBorderColor = cv::mean(frame, outlineMask);
 
-   std::vector<std::vector<cv::Point>> fill = { fillContour };
+   std::vector<Contour> fill = { fillContour };
    cv::Mat fillMask = cv::Mat::zeros(frame.size(), CV_8U);
    cv::drawContours(fillMask, fill, 0, cv::Scalar(255), -1);
    cv::Scalar meanFillColor = cv::mean(frame, fillMask);
@@ -367,7 +393,7 @@ FrameProcessor::classifyShape(
 
 void
 FrameProcessor::scaleContour(
-   std::vector<cv::Point>& contour,
+   Contour& contour,
    const float scalar)
 {
    cv::Moments M = cv::moments(contour);
