@@ -24,9 +24,6 @@ PoolTask::~PoolTask()
 
 void* startThread(void* arg)
 {
-   int s = pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
-   s = pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
-
    ThreadPool* instance = (ThreadPool*)arg;
    while (true) {
       // Get task if there is one
