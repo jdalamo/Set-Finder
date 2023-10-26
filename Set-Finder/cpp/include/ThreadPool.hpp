@@ -36,6 +36,7 @@ public:
 
    void(*func)(void*);
    void* arg;
+   bool threadCancelled = false;
    PoolTaskStatus status;
    pthread_mutex_t statusMutex;
    pthread_cond_t statusCond;

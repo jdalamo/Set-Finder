@@ -24,6 +24,9 @@ PoolTask::~PoolTask()
 
 void* startThread(void* arg)
 {
+   int s = pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+   s = pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+
    ThreadPool* instance = (ThreadPool*)arg;
    while (true) {
       // Get task if there is one
@@ -36,6 +39,8 @@ void* startThread(void* arg)
       task = instance->_queue.front();
       instance->_queue.pop();
       pthread_mutex_unlock(&instance->_queueMutex);
+
+      if (task->threadCancelled) break;
 
       bool taskFailed = false;
       try {
@@ -60,6 +65,9 @@ void* startThread(void* arg)
 
       pthread_cond_signal(&task->statusCond);
    }
+
+   // Do any clean up required before thread exits
+   pthread_exit(NULL);
 }
 
 ThreadPool::ThreadPool(
@@ -82,9 +90,31 @@ ThreadPool::ThreadPool(
 
 ThreadPool::~ThreadPool()
 {
-   for (pthread_t thread : _threads) {
-      pthread_cancel(thread);
+   /**
+    * Replace queue with a new queue containing one "cancel" task
+    * for every thread in the threadpool.
+    */
+   std::vector<PoolTask> tasks(_numThreads);
+   std::queue<PoolTask* const> newQueue;
+   for (int i = 0; i < _numThreads; i++) {
+      PoolTask task;
+      task.threadCancelled = true;
+      tasks[i] = task;
+      newQueue.push(&tasks[i]);
    }
+
+   pthread_mutex_lock(&_queueMutex);
+   _queue.swap(newQueue);
+   pthread_mutex_unlock(&_queueMutex);
+   pthread_cond_broadcast(&_queueCond);
+
+   for (pthread_t thread : _threads) {
+      int ret = pthread_join(thread, NULL);
+      if (ret != 0) {
+         std::cout << "Error cancelling thread " << thread << std::endl;
+      }
+   }
+
    pthread_mutex_destroy(&_queueMutex);
    pthread_cond_destroy(&_queueCond);
 }
