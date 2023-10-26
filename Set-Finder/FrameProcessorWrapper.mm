@@ -26,10 +26,13 @@
    UIImageToMat(image, frame, true);
 
    // Convert colorspace
-   cv::cvtColor(frame, frame, cv::COLOR_RGBA2RGB);
+   cv::cvtColor(frame, frame, cv::COLOR_RGBA2BGR);
 
    FrameProcessor* frameProcessor = (FrameProcessor*)_frameProcessor;
    frameProcessor->process(frame);
+
+   // Convert colorspace back
+   cv::cvtColor(frame, frame, cv::COLOR_BGR2RGBA);
 
    return MatToUIImage(frame);
 }
