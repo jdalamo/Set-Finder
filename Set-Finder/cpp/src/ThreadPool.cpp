@@ -5,7 +5,7 @@
 //  Created by JD del Alamo on 9/13/23.
 //
 
-#include "ThreadPool.hpp"
+#include "ThreadPool.h"
 
 namespace ThreadPool {
 

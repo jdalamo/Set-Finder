@@ -5,7 +5,7 @@
 //  Created by JD del Alamo on 7/19/23.
 //
 
-#include "SetGame.hpp"
+#include "SetGame.h"
 
 namespace SetGame {
 

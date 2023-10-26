@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include "SetGame.hpp"
-#include "ThreadPool.hpp"
+#include "SetGame.h"
+#include "ThreadPool.h"
 
 #include <opencv2/opencv.hpp>
 
