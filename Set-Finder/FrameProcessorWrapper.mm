@@ -7,8 +7,8 @@
 
 #import <opencv2/opencv.hpp>
 #import <opencv2/imgcodecs/ios.h>
-#import "FrameProcessorWrapper.hpp"
-#import "FrameProcessor.hpp"
+#import "FrameProcessorWrapper.h"
+#import "FrameProcessor.h"
 #import <Foundation/Foundation.h>
 
 @implementation FrameProcessorWrapper
@@ -26,10 +26,13 @@
    UIImageToMat(image, frame, true);
 
    // Convert colorspace
-   cv::cvtColor(frame, frame, cv::COLOR_RGBA2RGB);
+   cv::cvtColor(frame, frame, cv::COLOR_RGBA2BGR);
 
    FrameProcessor* frameProcessor = (FrameProcessor*)_frameProcessor;
    frameProcessor->process(frame);
+
+   // Convert colorspace back
+   cv::cvtColor(frame, frame, cv::COLOR_BGR2RGBA);
 
    return MatToUIImage(frame);
 }
