@@ -84,7 +84,7 @@ FrameProcessor::process(cv::Mat& frame)
    int contourIndex = 0;
    std::vector<IndexedContour> indexedContours;
    std::transform(contours.begin(), contours.end(), std::back_inserter(indexedContours),
-      [&](Contour& contour) {
+      [&](const Contour& contour) {
          contourIndex++;
          return IndexedContour { contourIndex - 1, contour };
       }
@@ -94,7 +94,7 @@ FrameProcessor::process(cv::Mat& frame)
    std::vector<IndexedContour> indexedCardContours;
    std::unordered_set<int> cardIndices;
    std::copy_if(indexedContours.begin(), indexedContours.end(), std::back_inserter(indexedCardContours),
-      [&](IndexedContour& indexedContour) {
+      [&](const IndexedContour& indexedContour) {
          return cardFilter(indexedContour,
                            contours,
                            hierarchy,
@@ -106,7 +106,7 @@ FrameProcessor::process(cv::Mat& frame)
    // Filter shapes
    std::vector<IndexedContour> indexedShapeContours;
    std::copy_if(indexedContours.begin(), indexedContours.end(), std::back_inserter(indexedShapeContours),
-      [&](IndexedContour& indexedContour) {
+      [&](const IndexedContour& indexedContour) {
          return shapeFilter(indexedContour,
                             hierarchy,
                             cardIndices);

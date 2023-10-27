@@ -18,35 +18,20 @@ func getWindowScene() -> UIWindowScene?
    return UIApplication.shared.windows.first?.windowScene
 }
 
-func getDeviceOrientation() -> UIDeviceOrientation
+func getUiOrientation() -> UIInterfaceOrientation
 {
-   var orientation = UIDevice.current.orientation
+   // Default to .landscapeRight--home button on right side
    let interfaceOrientation: UIInterfaceOrientation? =
       getWindowScene()?.interfaceOrientation
 
    guard interfaceOrientation != nil else {
-      return orientation
+      print("Couldn't get UI orientation")
+      return .landscapeRight
    }
 
-   if (!orientation.isValidInterfaceOrientation) {
-      switch interfaceOrientation {
-      case .portrait:
-         orientation = .portrait
-         break
-      case .landscapeRight:
-         orientation = .landscapeRight
-         break
-      case .landscapeLeft:
-         orientation = .landscapeLeft
-         break
-      case .portraitUpsideDown:
-         orientation = .portraitUpsideDown
-         break
-      default:
-         orientation = .unknown
-         break
-      }
+   if (interfaceOrientation == .landscapeLeft) {
+      return .landscapeLeft
    }
 
-   return orientation
+   return .landscapeRight
 }

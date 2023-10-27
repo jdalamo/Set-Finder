@@ -50,6 +50,12 @@ public:
 
    void process(cv::Mat& frame);
 
+   enum class ProcessingMode {
+      REAL_TIME_HIGHLIGHT,
+      REAL_TIME_NUMBER,
+      USER_INPUT
+   }
+
 private:
    bool cardFilter(
       const IndexedContour& indexedContour,
