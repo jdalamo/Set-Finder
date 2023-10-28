@@ -29,12 +29,27 @@
    cv::cvtColor(frame, frame, cv::COLOR_RGBA2BGR);
 
    FrameProcessor* frameProcessor = (FrameProcessor*)_frameProcessor;
-   frameProcessor->process(frame);
+   frameProcessor->Process(frame);
 
    // Convert colorspace back
    cv::cvtColor(frame, frame, cv::COLOR_BGR2RGBA);
 
    return MatToUIImage(frame);
+}
+
+- (bool) getShowSets {
+   FrameProcessor* frameProcessor = (FrameProcessor*)_frameProcessor;
+   return frameProcessor->GetShowSets();
+}
+
+- (void) setShowSets: (bool) show {
+   FrameProcessor* frameProcessor = (FrameProcessor*)_frameProcessor;
+   frameProcessor->SetShowSets(show);
+}
+
+- (int) getNumSetsInFrame {
+   FrameProcessor* frameProcessor = (FrameProcessor*)_frameProcessor;
+   return frameProcessor->GetNumSetsInFrame();
 }
 
 @end

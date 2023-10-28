@@ -56,7 +56,7 @@ const int STRIPED_SHADING_CONTRAST_THRESHOLD = 125;
 const float HIGHLIGHT_SCALE_FACTOR = 0.15;
 
 void
-FrameProcessor::process(cv::Mat& frame)
+FrameProcessor::Process(cv::Mat& frame)
 {
    /**
     * If this is the first frame processed we need to set some member
@@ -152,24 +152,11 @@ FrameProcessor::process(cv::Mat& frame)
    }
 
    // Get sets
-   std::vector<SetGame::Set> sets = getSets(indexedCards);
+   std::vector<SetGame::Set> sets = getSortedSets(indexedCards);
+   _numSetsInFrame = sets.size();
 
-   // Highlight sets
-   std::sort(sets.begin(), sets.end());
-   std::unordered_set<int> highlightedCards;
-   int i = 0;
-   for (const auto& set : sets) {
-      int colorIndex = i % SET_HIGHLIGHT_COLORS.size();
-      cv::Scalar color = SET_HIGHLIGHT_COLORS[colorIndex];
-      for (const auto& card : set.cards) {
-         if (highlightedCards.find(card.contourIndex) != highlightedCards.end()) {
-            // We've already highlighted this card--expand the contour
-            scaleContour(contours[card.contourIndex], HIGHLIGHT_SCALE_FACTOR);
-         }
-         cv::drawContours(frame, contours, card.contourIndex, color, 9);
-         highlightedCards.insert(card.contourIndex);
-      }
-      i++;
+   if (_showSets) {
+      presentSets(frame, sets, contours);
    }
 }
 
@@ -253,6 +240,55 @@ FrameProcessor::shapeFilter(
    if (approx.size() != 4) return false;
 
    return true;
+}
+
+std::vector<SetGame::Set>
+FrameProcessor::getSortedSets(
+   const std::vector<SetGame::Card> indexedCards) const
+{
+   std::vector<SetGame::Set> sets;
+   for (int i = 0; i < indexedCards.size(); i++) {
+      const SetGame::Card& cardI = indexedCards[i];
+      for (int j = i + 1; j < indexedCards.size(); j++) {
+         const SetGame::Card& cardJ = indexedCards[j];
+         for (int k = j + 1; k < indexedCards.size(); k++) {
+            const SetGame::Card& cardK = indexedCards[k];
+            if (SetGame::Set::isSet(cardI, cardJ, cardK)) {
+               std::vector<SetGame::Card> cards = { cardI, cardJ, cardK };
+               SetGame::Set set(cards);
+               sets.push_back(set);
+            }
+         }
+      }
+   }
+
+   std::sort(sets.begin(), sets.end());
+   return sets;
+}
+
+void
+FrameProcessor::presentSets(
+   cv::Mat& frame,
+   const std::vector<SetGame::Set>& sets,
+   const std::vector<Contour>& contours) const
+{
+   std::unordered_set<int> highlightedCards;
+   int i = 0;
+   while (i < sets.size()) {
+      const SetGame::Set& set = sets[i];
+      int colorIndex = i % SET_HIGHLIGHT_COLORS.size();
+      cv::Scalar color = SET_HIGHLIGHT_COLORS[colorIndex];
+      for (const auto& card : set.cards) {
+         std::vector<Contour> cardContour = { contours[card.contourIndex] };
+         if (highlightedCards.find(card.contourIndex) != highlightedCards.end()) {
+            // We've already highlighted this card--expand the contour
+            scaleContour(cardContour[0], HIGHLIGHT_SCALE_FACTOR);
+         }
+         cv::drawContours(frame, cardContour, 0, color, 9);
+         highlightedCards.insert(card.contourIndex);
+      }
+      i++;
+   }
 }
 
 void
@@ -476,27 +512,4 @@ FrameProcessor::bgrToHsv(
 
    std::tuple<int, int, int> output(hue, saturation, value);
    return output;
-}
-
-std::vector<SetGame::Set>
-FrameProcessor::getSets(
-   const std::vector<SetGame::Card> indexedCards) const
-{
-   std::vector<SetGame::Set> sets;
-   for (int i = 0; i < indexedCards.size(); i++) {
-      const SetGame::Card& cardI = indexedCards[i];
-      for (int j = i + 1; j < indexedCards.size(); j++) {
-         const SetGame::Card& cardJ = indexedCards[j];
-         for (int k = j + 1; k < indexedCards.size(); k++) {
-            const SetGame::Card& cardK = indexedCards[k];
-            if (SetGame::Set::isSet(cardI, cardJ, cardK)) {
-               std::vector<SetGame::Card> cards = { cardI, cardJ, cardK };
-               SetGame::Set set(cards);
-               sets.push_back(set);
-            }
-         }
-      }
-   }
-
-   return sets;
 }

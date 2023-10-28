@@ -16,4 +16,7 @@
 }
 - (FrameProcessorWrapper*) init: (int) maxThreads;
 - (UIImage*) process: (UIImage*) image;
+- (bool) getShowSets;
+- (void) setShowSets: (bool) show;
+- (int) getNumSetsInFrame;
 @end

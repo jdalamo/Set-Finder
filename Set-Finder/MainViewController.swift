@@ -15,6 +15,7 @@ class MainViewController: UIViewController, AVCaptureVideoDataOutputSampleBuffer
    @IBOutlet weak var pauseButton: UIButton!
    @IBOutlet weak var shareButton: UIButton!
    @IBOutlet weak var settingsButton: UIButton!
+   @IBOutlet weak var numSetsLabel: UILabel!
    
    private var captureSession: AVCaptureSession = AVCaptureSession()
    private let videoDataOutput = AVCaptureVideoDataOutput()
@@ -160,9 +161,27 @@ class MainViewController: UIViewController, AVCaptureVideoDataOutputSampleBuffer
          fatalError("Problem unwrapping frameProcessor")
       }
 
+      let numSets = Int((frameProcessor?.getNumSetsInFrame())!)
+
       DispatchQueue.main.async {
          self.imageView.image = processedImage
+         self.updateNumSets(numSets: numSets)
       }
+   }
+
+   private func updateNumSets(numSets: Int)
+   {
+      self.numSetsLabel.text = String(numSets)
+   }
+
+   func getShowSets() -> Bool
+   {
+      return (frameProcessor?.getShowSets())!
+   }
+
+   func setShowSets(show: Bool)
+   {
+      frameProcessor?.setShowSets(show)
    }
 }
 
