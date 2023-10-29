@@ -46,11 +46,24 @@ public:
 class FrameProcessor {
 public:
    FrameProcessor(
-      int maxThreads) : _threadPool(maxThreads) {}
+      int maxThreads, bool showSets = true) :
+   _threadPool(maxThreads),
+   _showSets(showSets) {}
 
-   void process(cv::Mat& frame);
+   void Process(cv::Mat& frame);
+
+   bool GetShowSets() const { return _showSets; }
+
+   void SetShowSets(bool show) { _showSets = show; }
+
+   int GetNumSetsInFrame() const { return _numSetsInFrame; }
 
 private:
+   /**
+    * ================
+    * Instance Methods
+    * ================
+    */
    bool cardFilter(
       const IndexedContour& indexedContour,
       const std::vector<Contour>& contours,
@@ -62,6 +75,19 @@ private:
       const std::vector<cv::Vec4i>& hierarchy,
       const std::unordered_set<int>& cardIndices) const;
 
+   std::vector<SetGame::Set> getSortedSets(
+      const std::vector<SetGame::Card> indexedCards) const;
+
+   void presentSets(
+      cv::Mat& frame,
+      const std::vector<SetGame::Set>& sets,
+      const std::vector<Contour>& contours) const;
+
+   /**
+    * ==============
+    * Static Methods
+    * ==============
+    */
    static void classifyShapes(
       void* voidArg);
 
@@ -91,9 +117,6 @@ private:
       const int g,
       const int r);
 
-   std::vector<SetGame::Set> getSets(
-      const std::vector<SetGame::Card> indexedCards) const;
-
 private:
    bool _initialized = false;
    tp::ThreadPool _threadPool;
@@ -101,4 +124,6 @@ private:
    float _maxCardArea = 0;
    float _minShapeArea = 0;
    float _maxShapeArea = 0;
+   int _numSetsInFrame;
+   bool _showSets = true;
 };

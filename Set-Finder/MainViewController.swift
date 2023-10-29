@@ -9,27 +9,35 @@ import UIKit
 import AVFoundation
 
 let FRAME_PROCESSOR_MAX_THREADS = 4 // More than 4 seems to have diminishing returns
+let NUM_SETS_LABEL_DEFAULT_TEXT = " # Sets: " // Leading space is a hacky way to add padding
 
-class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
+class MainViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate, FrameProcessorDelegate {
    @IBOutlet weak var imageView: UIImageView!
    @IBOutlet weak var pauseButton: UIButton!
-    
-   private var captureSession: AVCaptureSession = AVCaptureSession()
+   @IBOutlet weak var shareButton: UIButton!
+   @IBOutlet weak var settingsButton: UIButton!
+   @IBOutlet weak var numSetsLabel: UILabel!
+   
+   private let captureSession: AVCaptureSession = AVCaptureSession()
    private let videoDataOutput = AVCaptureVideoDataOutput()
-   private var frameProcessor = FrameProcessorWrapper(Int32(FRAME_PROCESSOR_MAX_THREADS))
-   private var shouldCapture = true
+   private let frameProcessor = FrameProcessorWrapper(Int32(FRAME_PROCESSOR_MAX_THREADS),
+      showSets: UserDefaults.standard.bool(forKey: HIGHLIGHT_SETS_KEY))
+   private var capturing = true
 
    override func viewDidLoad() {
       super.viewDidLoad()
 
-      // TODO: update to use UIWindowScene.requestGeometryUpdate()
-      let orientation = getDeviceOrientation().rawValue
-      UIDevice.current.setValue(orientation, forKey: "orientation")
-
       pauseButton.addTarget(self, action: #selector(pauseButtonTapped), for: .touchUpInside)
+      shareButton.addTarget(self, action: #selector(shareButtonTapped), for: .touchUpInside)
+      settingsButton.addTarget(self, action: #selector(settingsButtonTapped), for: .touchUpInside)
 
       self.addCameraInput()
       self.getFrames()
+
+      // TODO: update to use UIWindowScene.requestGeometryUpdate()
+      let orientation = getUiOrientation()
+      UIDevice.current.setValue(orientation.rawValue, forKey: "orientation")
+      updateConnectionVideoOrientation(orientation: orientation)
 
       DispatchQueue.global(qos: .userInitiated).async {
          self.captureSession.startRunning() // Should be called from background thread
@@ -44,29 +52,57 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator)
    {
       super.viewWillTransition(to: size, with: coordinator)
-      updateConnectionVideoOrientation()
+      updateConnectionVideoOrientation(orientation: getUiOrientation())
    }
 
    @objc private func pauseButtonTapped(sender: UIButton)
    {
-      self.shouldCapture = !self.shouldCapture
+      self.capturing = !self.capturing
 
-      if (self.shouldCapture) {
-         sender.setImage(UIImage(systemName: "pause.circle.fill"), for: .normal)
+      if (self.capturing) {
+         let image = UIImage(systemName: "pause.circle.fill")?.withRenderingMode(.alwaysTemplate)
+         sender.setImage(image, for: .normal)
+         sender.tintColor = UIColor(red: 1, green: 0, blue: 0, alpha: 1)
       } else {
-         sender.setImage(UIImage(systemName: "play.circle.fill"), for: .normal)
+         let image = UIImage(systemName: "play.circle.fill")?.withRenderingMode(.alwaysTemplate)
+         sender.setImage(image, for: .normal)
+         sender.tintColor = UIColor(red: 0, green: 1, blue: 0, alpha: 1)
       }
    }
 
-   private func updateConnectionVideoOrientation(inverse: Bool = true)
+   @objc private func shareButtonTapped(sender: UIButton)
+   {
+      if (self.capturing) {
+         // User hasn't paused live frame processing--return
+         return
+      }
+
+      let image = self.imageView
+      let shareImage = [ image! ]
+      let activityViewController = UIActivityViewController(activityItems: shareImage, applicationActivities: nil)
+      activityViewController.popoverPresentationController?.sourceView = self.view
+
+      self.present(activityViewController, animated: true, completion: nil)
+   }
+
+   @objc private func settingsButtonTapped(sender: UIButton)
+   {
+      if let settingsViewController = storyboard?.instantiateViewController(withIdentifier: "settings")
+         as? SettingsViewController {
+         settingsViewController.delegate = self
+         present(settingsViewController, animated: true, completion: nil)
+      }
+   }
+
+   private func updateConnectionVideoOrientation(orientation: UIInterfaceOrientation)
    {
       var videoOrientation: AVCaptureVideoOrientation
-      switch (getDeviceOrientation()) {
+      switch (orientation) {
          case .landscapeLeft:
-            videoOrientation = inverse ? .landscapeRight : .landscapeLeft
+            videoOrientation = .landscapeLeft
             break
          case .landscapeRight:
-            videoOrientation = inverse ? .landscapeLeft : .landscapeRight
+            videoOrientation = .landscapeRight
             break
          default:
             print("Unsupported device orientation")
@@ -100,8 +136,6 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
       videoDataOutput.alwaysDiscardsLateVideoFrames = true
       videoDataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "camera.frame.processing.queue"))
       self.captureSession.addOutput(videoDataOutput)
-
-      updateConnectionVideoOrientation(inverse: false)
    }
 
    func captureOutput(
@@ -109,7 +143,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
       didOutput sampleBuffer: CMSampleBuffer,
       from connection: AVCaptureConnection)
    {
-      if (!shouldCapture) {
+      if (!capturing) {
          return
       }
       guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
@@ -130,9 +164,25 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
          fatalError("Problem unwrapping frameProcessor")
       }
 
+      let numSets = Int((frameProcessor?.getNumSetsInFrame())!)
+
       DispatchQueue.main.async {
          self.imageView.image = processedImage
+         self.updateNumSets(numSets: numSets)
       }
+   }
+
+   private func updateNumSets(numSets: Int)
+   {
+      self.numSetsLabel.text = NUM_SETS_LABEL_DEFAULT_TEXT + String(numSets)
+   }
+
+   func getShowSets() -> Bool {
+      return (frameProcessor?.getShowSets())!
+   }
+   
+   func setShowSets(show: Bool) {
+      frameProcessor?.setShowSets(show)
    }
 }
 
