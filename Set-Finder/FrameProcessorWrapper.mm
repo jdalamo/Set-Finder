@@ -13,9 +13,9 @@
 
 @implementation FrameProcessorWrapper
 
-- (FrameProcessorWrapper*) init: (int) maxThreads {
+- (FrameProcessorWrapper*) init: (int) maxThreads showSets:(bool) showSets {
    // Create C++ instance
-   _frameProcessor = (void*)new FrameProcessor(maxThreads);
+   _frameProcessor = (void*)new FrameProcessor(maxThreads, showSets);
    return self;
 }
 

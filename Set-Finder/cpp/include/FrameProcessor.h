@@ -46,7 +46,9 @@ public:
 class FrameProcessor {
 public:
    FrameProcessor(
-      int maxThreads) : _threadPool(maxThreads) {}
+      int maxThreads, bool showSets = true) :
+   _threadPool(maxThreads),
+   _showSets(showSets) {}
 
    void Process(cv::Mat& frame);
 

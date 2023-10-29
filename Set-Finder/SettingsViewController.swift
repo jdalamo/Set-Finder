@@ -7,11 +7,18 @@
 
 import UIKit
 
+protocol FrameProcessorDelegate {
+   func getShowSets() -> Bool
+   func setShowSets(show: Bool)
+}
+
 class SettingsViewController: UIViewController {
    @IBOutlet weak var closeButton: UIButton!
    @IBOutlet weak var skipWelcomeSwitch: UISwitch!
    @IBOutlet weak var highlightSetsSwitch: UISwitch!
-   
+
+   var delegate: FrameProcessorDelegate?
+
    override func viewDidLoad() {
       super.viewDidLoad()
 
@@ -19,23 +26,11 @@ class SettingsViewController: UIViewController {
 
       skipWelcomeSwitch.setOn(UserDefaults.standard.bool(forKey: SKIP_WELCOME_KEY), animated: false)
 
-      let showSets = getShowSetsValue()
-      highlightSetsSwitch.setOn(showSets, animated: false)
+      highlightSetsSwitch.setOn((delegate?.getShowSets())!, animated: false)
 
       skipWelcomeSwitch.addTarget(self, action: #selector(skipWelcomeSwitchTapped), for: .touchUpInside)
       highlightSetsSwitch.addTarget(self, action: #selector(highlightSetsSwitchTapped), for: .touchUpInside)
       
-   }
-
-   private func getShowSetsValue() -> Bool
-   {
-      var show: Bool = true
-      if let mainViewController = storyboard?.instantiateViewController(withIdentifier: "main")
-         as? MainViewController {
-         show = mainViewController.getShowSets()
-      }
-
-      return show
    }
 
    @objc private func closeButtonTapped(sender: UIButton)
@@ -48,11 +43,9 @@ class SettingsViewController: UIViewController {
       UserDefaults.standard.set(sender.isOn, forKey: SKIP_WELCOME_KEY)
    }
 
-   @objc private func highlightSetsSwitchTapped()
+   @objc private func highlightSetsSwitchTapped(sender: UISwitch)
    {
-      if let mainViewController = storyboard?.instantiateViewController(withIdentifier: "main")
-         as? MainViewController {
-         mainViewController.setShowSets(show: highlightSetsSwitch.isOn)
-      }
+      UserDefaults.standard.set(sender.isOn, forKey: HIGHLIGHT_SETS_KEY)
+      delegate?.setShowSets(show: sender.isOn)
    }
 }

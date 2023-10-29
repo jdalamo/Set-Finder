@@ -9,17 +9,19 @@ import UIKit
 import AVFoundation
 
 let FRAME_PROCESSOR_MAX_THREADS = 4 // More than 4 seems to have diminishing returns
+let NUM_SETS_LABEL_DEFAULT_TEXT = " # Sets: " // Leading space is a hacky way to add padding
 
-class MainViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
+class MainViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate, FrameProcessorDelegate {
    @IBOutlet weak var imageView: UIImageView!
    @IBOutlet weak var pauseButton: UIButton!
    @IBOutlet weak var shareButton: UIButton!
    @IBOutlet weak var settingsButton: UIButton!
    @IBOutlet weak var numSetsLabel: UILabel!
    
-   private var captureSession: AVCaptureSession = AVCaptureSession()
+   private let captureSession: AVCaptureSession = AVCaptureSession()
    private let videoDataOutput = AVCaptureVideoDataOutput()
-   private var frameProcessor = FrameProcessorWrapper(Int32(FRAME_PROCESSOR_MAX_THREADS))
+   private let frameProcessor = FrameProcessorWrapper(Int32(FRAME_PROCESSOR_MAX_THREADS),
+      showSets: UserDefaults.standard.bool(forKey: HIGHLIGHT_SETS_KEY))
    private var capturing = true
 
    override func viewDidLoad() {
@@ -87,6 +89,7 @@ class MainViewController: UIViewController, AVCaptureVideoDataOutputSampleBuffer
    {
       if let settingsViewController = storyboard?.instantiateViewController(withIdentifier: "settings")
          as? SettingsViewController {
+         settingsViewController.delegate = self
          present(settingsViewController, animated: true, completion: nil)
       }
    }
@@ -171,16 +174,14 @@ class MainViewController: UIViewController, AVCaptureVideoDataOutputSampleBuffer
 
    private func updateNumSets(numSets: Int)
    {
-      self.numSetsLabel.text = String(numSets)
+      self.numSetsLabel.text = NUM_SETS_LABEL_DEFAULT_TEXT + String(numSets)
    }
 
-   func getShowSets() -> Bool
-   {
+   func getShowSets() -> Bool {
       return (frameProcessor?.getShowSets())!
    }
-
-   func setShowSets(show: Bool)
-   {
+   
+   func setShowSets(show: Bool) {
       frameProcessor?.setShowSets(show)
    }
 }

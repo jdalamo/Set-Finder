@@ -8,6 +8,7 @@
 import UIKit
 
 let SKIP_WELCOME_KEY = "SKIP_WELCOME"
+let HIGHLIGHT_SETS_KEY = "HIGHLIGHT_SETS"
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
@@ -26,6 +27,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
          UserDefaults.standard.set(false, forKey: SKIP_WELCOME_KEY)
       }
       let skipWelcome = UserDefaults.standard.bool(forKey: SKIP_WELCOME_KEY)
+
+      let highlightSetsPresent = UserDefaults.standard.object(forKey: HIGHLIGHT_SETS_KEY) != nil
+      if (!highlightSetsPresent) {
+         // First time running app--set default to true
+         UserDefaults.standard.set(true, forKey: HIGHLIGHT_SETS_KEY)
+      }
 
       let mainStoryboard = UIStoryboard(name: "Main", bundle: nil)
       var rootViewController: UIViewController
