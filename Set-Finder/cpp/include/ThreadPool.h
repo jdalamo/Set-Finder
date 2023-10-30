@@ -92,8 +92,8 @@ ThreadPool::parallelize(
             start = threadIndex * bigPartitionSize;
             end = (threadIndex + 1) * bigPartitionSize;
          } else {
-            start = threadIndex * partitionSize;
-            end = (threadIndex + 1) * partitionSize;
+            start = threadIndex * partitionSize + numBigPartitions;
+            end = (threadIndex + 1) * partitionSize + numBigPartitions;
          }
 
          PoolTask* task = new PoolTask;

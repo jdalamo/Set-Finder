@@ -35,12 +35,13 @@ const int PARENT_HIERARCHY_INDEX = 3;
 const float SHAPE_APPROX_ACCURACY = 0.08;
 
 // Color constants
+// Purple aren't used but defining them makes the stratification more clear
 const int RED_MIN = 340;
 const int RED_MAX = 65;
-const int PURPLE_MIN = 260;
-const int PURPLE_MAX = 340;
 const int GREEN_MIN = 65;
 const int GREEN_MAX = 180;
+const int PURPLE_MIN = 180;
+const int PURPLE_MAX = 340;
 
 const float SHAPE_MATCH_DIAMOND_THRESHOLD = 0.065;
 const float SOLIDITY_SQUIGGLE_PILL_THRESHOLD = 0.9;
@@ -136,7 +137,10 @@ FrameProcessor::Process(cv::Mat& frame)
       const std::vector<SetGame::Shape>& shapes = entry.second;
 
       // The max number of shapes per card is 3
-      if (shapes.size() > 3) continue;
+      if (shapes.size() > 3) {
+         std::cout << "found card with more than 3 shapes" << std::endl;
+         continue;
+      }
 
       // Check that all shapes within the same card are equal
       bool allEqual = std::adjacent_find(shapes.begin(), shapes.end(),
@@ -144,7 +148,10 @@ FrameProcessor::Process(cv::Mat& frame)
             return shape1 != shape2;
          }
       ) == shapes.end();
-      if (!allEqual) continue;
+      if (!allEqual) {
+         std::cout << "found card with not all equal shapes" << std::endl;
+         continue;
+      }
 
       // TODO: check shape positions relative to card and compare to number of shapes
       SetGame::Card card(shapes[0], shapes.size(), cardIndex);
@@ -156,7 +163,7 @@ FrameProcessor::Process(cv::Mat& frame)
    _numSetsInFrame = sets.size();
 
    if (_showSets) {
-      presentSets(frame, sets, contours);
+      highlightSets(frame, sets, contours);
    }
 }
 
@@ -267,7 +274,7 @@ FrameProcessor::getSortedSets(
 }
 
 void
-FrameProcessor::presentSets(
+FrameProcessor::highlightSets(
    cv::Mat& frame,
    const std::vector<SetGame::Set>& sets,
    const std::vector<Contour>& contours) const
@@ -312,11 +319,16 @@ FrameProcessor::classifyShape(
    std::unordered_map<int, std::vector<SetGame::Shape>>& cardIndexToShapeMap,
    pthread_mutex_t* mapMutex)
 {
-   int index = std::get<0>(indexedShape);
+   const int contourIndex = std::get<0>(indexedShape);
    const Contour& contour = std::get<1>(indexedShape);
 
-   // Detect contour's symbol
-   double peri = cv::arcLength(contour, true) * SHAPE_APPROX_ACCURACY;
+   /**
+    * Detect contour's symbol by comparing the approximate, 4-sided contour to the actual contour.
+    * If it's within a certain similarity then it's a diamond because diamonds are the shape that can most
+    * accurately be approximated with only 4 sides.  If it's not a diamond then use the convex hull to distinguish
+    * between squiggles and ovals.
+    */
+   const double peri = cv::arcLength(contour, true) * SHAPE_APPROX_ACCURACY;
    Contour approx;
    cv::approxPolyDP(contour, approx, peri, true);
    double shapeMatchRatio = cv::matchShapes(contour, approx, cv::CONTOURS_MATCH_I1, 0);
@@ -361,17 +373,17 @@ FrameProcessor::classifyShape(
    SetGame::Color color;
    if (hue > RED_MIN || hue <= RED_MAX) {
       color = SetGame::Color::RED;
-   } else if (hue > PURPLE_MIN && hue <= PURPLE_MAX) {
-      color = SetGame::Color::PURPLE;
    } else if (hue > GREEN_MIN && hue <= GREEN_MAX) {
       color = SetGame::Color::GREEN;
    } else {
-      std::cout << "ERROR: undetected color: " << hue << "|" <<
-         std::get<1>(hsv) << "|" << std::get<2>(hsv) << std::endl;
-      color = SetGame::Color::UNKNOWN;
+      color = SetGame::Color::PURPLE;
    }
 
-   // Detect contour's shading
+   /**
+    * Detect contour's shading by comparing the average color of the outline of the shape
+    * to the average color of the inside of the shape.  The ratio between these two colors
+    * can be used to determine whether the shape is open, striped, or solid.
+    */
    Contour fillContour, outlineContourExterior, outlineContourInterior;
    std::transform(contour.begin(), contour.end(), std::back_inserter(fillContour),
       [&](const cv::Point& point) {
@@ -412,7 +424,7 @@ FrameProcessor::classifyShape(
    }
 
    SetGame::Shape shape(color, symbol, shading);
-   const int parentIndex = hierarchy[index][PARENT_HIERARCHY_INDEX];
+   const int parentIndex = hierarchy[contourIndex][PARENT_HIERARCHY_INDEX];
    pthread_mutex_lock(mapMutex);
    cardIndexToShapeMap[parentIndex].push_back(shape);
    pthread_mutex_unlock(mapMutex);

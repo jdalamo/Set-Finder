@@ -25,7 +25,6 @@ class SettingsViewController: UIViewController {
       closeButton.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
 
       skipWelcomeSwitch.setOn(UserDefaults.standard.bool(forKey: SKIP_WELCOME_KEY), animated: false)
-
       highlightSetsSwitch.setOn((delegate?.getShowSets())!, animated: false)
 
       skipWelcomeSwitch.addTarget(self, action: #selector(skipWelcomeSwitchTapped), for: .touchUpInside)
