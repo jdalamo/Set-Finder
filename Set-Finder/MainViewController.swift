@@ -77,9 +77,9 @@ class MainViewController: UIViewController, AVCaptureVideoDataOutputSampleBuffer
          return
       }
 
-      let image = self.imageView
-      let shareImage = [ image! ]
-      let activityViewController = UIActivityViewController(activityItems: shareImage, applicationActivities: nil)
+      let image = self.imageView.image
+      let items = [ image! ]
+      let activityViewController = UIActivityViewController(activityItems: items, applicationActivities: nil)
       activityViewController.popoverPresentationController?.sourceView = self.view
 
       self.present(activityViewController, animated: true, completion: nil)

@@ -78,7 +78,7 @@ private:
    std::vector<SetGame::Set> getSortedSets(
       const std::vector<SetGame::Card> indexedCards) const;
 
-   void presentSets(
+   void highlightSets(
       cv::Mat& frame,
       const std::vector<SetGame::Set>& sets,
       const std::vector<Contour>& contours) const;
