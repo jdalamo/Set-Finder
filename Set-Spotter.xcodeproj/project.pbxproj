@@ -17,10 +17,10 @@
 		6933DA7D2A6100C600763EB9 /* Set_SpotterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6933DA7C2A6100C600763EB9 /* Set_SpotterTests.swift */; };
 		6933DA872A6100C600763EB9 /* Set_SpotterUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6933DA862A6100C600763EB9 /* Set_SpotterUITests.swift */; };
 		6933DA892A6100C600763EB9 /* Set_SpotterUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6933DA882A6100C600763EB9 /* Set_SpotterUITestsLaunchTests.swift */; };
-		6933DA962A61EE8700763EB9 /* opencv2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6933DA952A61EE8700763EB9 /* opencv2.framework */; };
 		6933DAAC2A686CB100763EB9 /* FrameProcessorWrapper.mm in Sources */ = {isa = PBXBuildFile; fileRef = 6933DAAA2A686CB100763EB9 /* FrameProcessorWrapper.mm */; };
 		698E238A2AEB2A9800F9621D /* WelcomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 698E23892AEB2A9800F9621D /* WelcomeViewController.swift */; };
 		698E238C2AEB71DC00F9621D /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 698E238B2AEB71DC00F9621D /* SettingsViewController.swift */; };
+		699C37452AF0B62200BB0CF8 /* opencv2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6933DA952A61EE8700763EB9 /* opencv2.framework */; };
 		69CE77AE2ACBCA60008CBE86 /* FrameProcessor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 69CE77AD2ACBCA60008CBE86 /* FrameProcessor.cpp */; };
 		69CE77B02ACBCA6E008CBE86 /* SetGame.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 69CE77AF2ACBCA6E008CBE86 /* SetGame.cpp */; };
 		69CE77B22ACBCA7C008CBE86 /* ThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 69CE77B12ACBCA7C008CBE86 /* ThreadPool.cpp */; };
@@ -78,7 +78,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6933DA962A61EE8700763EB9 /* opencv2.framework in Frameworks */,
+				699C37452AF0B62200BB0CF8 /* opencv2.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -252,7 +252,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1430;
-				LastUpgradeCheck = 1430;
+				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					6933DA612A6100C300763EB9 = {
 						CreatedOnToolsVersion = 14.3.1;
@@ -421,6 +421,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -481,6 +482,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -492,6 +494,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
@@ -529,6 +532,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MACH_O_TYPE = mh_execute;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "JD.Set-Spotter";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -570,6 +574,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MACH_O_TYPE = staticlib;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "JD.Set-Spotter";
 				PRODUCT_NAME = "$(TARGET_NAME)";
