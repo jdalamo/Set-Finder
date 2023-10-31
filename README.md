@@ -36,3 +36,6 @@ Frames are read from the back camera and analyzed with OpenCV as part of the fol
 6. Verify cards
    - For each card all the classified shapes are analyzed to ensure that the algorithm didn't classify multiple shapes on the same card differently.
 7. Iterate through all cards while searching for sets.
+
+### Download
+[Apple App Store](https://apps.apple.com/us/app/set-spotter/id6470878137)
